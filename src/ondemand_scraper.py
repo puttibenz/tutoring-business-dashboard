@@ -45,7 +45,7 @@ def categorize_type(name):
 
 # ตั้งค่า Selenium
 chrome_options = Options()
-chrome_options.add_argument("--headless=new")
+# chrome_options.add_argument("--headless=new")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 wait = WebDriverWait(driver, 15)
 

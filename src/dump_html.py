@@ -5,7 +5,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import time
 
 opts = Options()
-opts.add_argument("--headless=new")
+# opts.add_argument("--headless=new")
 
 def smp_html():
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
@@ -30,7 +30,10 @@ def on_demand_html():
 
 def we_html():
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=opts)
-    driver.get("https://store.webythebrain.com/course/?utm_source=google&utm_medium=cpc&utm_campaign=ads_courses&utm_content=20250111_individualcourses&gad_source=1&gad_campaignid=22112613317&gbraid=0AAAAAprrK5nvznhKnrpaLtAETiL30mGVe&gclid=CjwKCAjwvqjOBhAGEiwAngeQna-QgtYereNoKxejeHddZNiJXOvcg1Mp3IAY7Xul7nPsjQx1GP74hhoCwPQQAvD_BwE")
+    driver.get("https://store.webythebrain.com/course/")
+    time.sleep(10)
+    # Scroll to load dynamic parts
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(5)
     with open("example_we_cat_page.html", "w", encoding="utf-8") as f:
         f.write(driver.page_source)

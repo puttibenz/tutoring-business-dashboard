@@ -11,19 +11,19 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 # --- Input: WE Course Catalog URL ---
-WE_CATALOG_URL = "https://store.webythebrain.com/course/"
+WE_CATALOG_URL = "https://store.webythebrain.com/course/?utm_source=google&utm_medium=cpc&utm_campaign=ads_courses&utm_content=20250111_individualcourses&gad_source=1&gad_campaignid=22112613317&gbraid=0AAAAAprrK5nvznhKnrpaLtAETiL30mGVe&gclid=CjwKCAjwvqjOBhAGEiwAngeQna-QgtYereNoKxejeHddZNiJXOvcg1Mp3IAY7Xul7nPsjQx1GP74hhoCwPQQAvD_BwE"
 
 # Helper Functions for Categorization
-def categorize_subject(name):
-    name = name.lower()
-    if 'math' in name or 'คณิต' in name: return 'คณิตศาสตร์'
-    if 'phy' in name or 'ฟิสิกส์' in name: return 'ฟิสิกส์'
-    if 'bio' in name or 'ชีวะ' in name: return 'ชีววิทยา'
-    if 'eng' in name or 'อังกฤษ' in name: return 'ภาษาอังกฤษ'
-    if 'เคมี' in name: return 'เคมี'
-    if 'tpat' in name or 'tgat' in name: return 'ความถนัด/TGAT/TPAT'
-    if 'ไทย' in name: return 'ภาษาไทย'
-    if 'สังคม' in name: return 'สังคมศึกษา'
+def categorize_subject(name, breadcrumb=""):
+    combined_text = (name + " " + breadcrumb).lower()
+    if 'math' in combined_text or 'คณิต' in combined_text: return 'คณิตศาสตร์'
+    if 'phy' in combined_text or 'ฟิสิกส์' in combined_text: return 'ฟิสิกส์'
+    if 'bio' in combined_text or 'ชีวะ' in combined_text or 'ชีววิทยา' in combined_text: return 'ชีววิทยา'
+    if 'eng' in combined_text or 'อังกฤษ' in combined_text: return 'ภาษาอังกฤษ'
+    if 'เคมี' in combined_text: return 'เคมี'
+    if 'tpat' in combined_text or 'tgat' in combined_text: return 'ความถนัด/TGAT/TPAT'
+    if 'ไทย' in combined_text: return 'ภาษาไทย'
+    if 'สังคม' in combined_text: return 'สังคมศึกษา'
     return 'อื่นๆ'
 
 def categorize_type(name):
@@ -37,7 +37,7 @@ def categorize_type(name):
 
 # Setup Selenium
 chrome_options = Options()
-chrome_options.add_argument("--headless=new")
+# chrome_options.add_argument("--headless=new")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 wait = WebDriverWait(driver, 15)
 
@@ -48,6 +48,28 @@ try:
     print("--- Step 1: Collecting WE Course Links ---")
     driver.get(WE_CATALOG_URL)
     
+    # --- [เพิ่มใหม่] กด Filter ระดับชั้น ---
+    print("กำลังตั้งค่า Filter ระดับชั้น...")
+    time.sleep(3) # รอให้หน้าเว็บโหลดโครงสร้างเสร็จ
+    
+    # รายชื่อ value ของ checkbox ที่เราต้องการติ๊ก (ม.ปลาย และ สอบเข้ามหาลัย)
+    target_filters = ["university-admission", "senior-high-school"]
+    
+    for val in target_filters:
+        try:
+            # หา input ที่มีค่า value ตรงกับที่เราต้องการ
+            checkbox = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, f"input[type='checkbox'][value='{val}']")))
+            
+            # ใช้ JavaScript คลิกลดปัญหา Element โดนบัง
+            driver.execute_script("arguments[0].click();", checkbox)
+            print(f"  [+] ติ๊ก Filter: {val} เรียบร้อยแล้ว")
+            time.sleep(2) # รอให้เว็บหมุนโหลดข้อมูลคอร์สชุดใหม่
+        except Exception as e:
+            print(f"  [-] ไม่สามารถติ๊ก Filter {val} ได้: {e}")
+
+    print("เริ่มกวาดลิงก์คอร์สเรียน...")
+    # ------------------------------------
+
     page_num = 1
     while True:
         print(f"Scraping links from page {page_num}...")
@@ -74,7 +96,8 @@ try:
             # Scroll to button and click
             driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_button)
             time.sleep(1)
-            next_button.click()
+            # ใช้ JS click กับปุ่ม Next ด้วยเลยเพื่อความชัวร์
+            driver.execute_script("arguments[0].click();", next_button)
             page_num += 1
         except Exception as e:
             print("No 'Next' button found or error clicking it. Finishing link collection.")
@@ -107,24 +130,40 @@ try:
                 except:
                     name = "N/A"
             
-            # Price
+            # --- Price Extraction ---
+            price_val = 0.0
             try:
-                # Find all prices, prefer discounted ones
-                price_elements = driver.find_elements(By.CSS_SELECTOR, "span.woocommerce-Price-amount bdi, .course-price .current-price, .current-price")
-                if price_elements:
-                    price_text = price_elements[-1].text.strip()
+                # Try common UI elements first
+                price_elem = None
+                selectors = [
+                    ".woocommerce-Price-amount bdi", 
+                    ".current-price", 
+                    ".course-price .current-price",
+                    "ins .woocommerce-Price-amount bdi"
+                ]
+                for sel in selectors:
+                    try:
+                        price_elem = driver.find_element(By.CSS_SELECTOR, sel)
+                        if price_elem: break
+                    except: continue
+                
+                if price_elem:
+                    price_text = price_elem.get_attribute("textContent").strip()
                 else:
-                    price_text = "0"
+                    # Try meta tag
+                    try:
+                        price_elem = driver.find_element(By.CSS_SELECTOR, "meta[property='product:price:amount']")
+                        price_text = price_elem.get_attribute("content")
+                    except:
+                        price_text = "0"
+                
+                price_val = float(re.sub(r'[^\d.]', '', price_text)) if re.sub(r'[^\d.]', '', price_text) else 0.0
             except:
-                price_text = "0"
+                price_val = 0.0
             
-            price_val = float(re.sub(r'[^\d.]', '', price_text)) if re.sub(r'[^\d.]', '', price_text) else 0.0
-            
-            # Tutor
+            # --- Tutor Extraction ---
             tutor = "N/A"
             try:
-                # In the provided HTML, tutors are in h5 tags inside wrap-auther-image-s
-                # They might be hidden (display: none) so use get_attribute("textContent")
                 tutor_elements = driver.find_elements(By.CSS_SELECTOR, ".wrap-auther-image-s h5, .wrap-auther-imagex h5, .wpt-instructor-s h5, .author-name-s h5")
                 if tutor_elements:
                     tutor_names = []
@@ -134,32 +173,38 @@ try:
                             tutor_names.append(t_name)
                     if tutor_names:
                         tutor = ", ".join(tutor_names)
-                else:
-                    # Fallback to we-tutor-card h4 if above fails
-                    tutors = driver.find_elements(By.CSS_SELECTOR, "div.we-tutor-card h4")
-                    if tutors:
-                        tutor = ", ".join([t.get_attribute("textContent").strip() for t in tutors if t.get_attribute("textContent").strip()])
             except:
                 pass
             
-            # Total Hours
+            # --- Total Hours Extraction ---
             total_hours = 0.0
             try:
-                # Based on analysis, hours are often near "ชั่วโมงไฟล์การเรียน"
-                hour_info_elements = driver.find_elements(By.CSS_SELECTOR, "div.summary-item")
-                for item in hour_info_elements:
-                    if "ชั่วโมงไฟล์การเรียน" in item.text:
-                        hour_text = item.text
-                        # Match formats like "40:00 ชม." or "40 ชม."
-                        hour_match = re.search(r'([\d:]+)\s*ชม', hour_text)
-                        if hour_match:
-                            h_str = hour_match.group(1)
-                            if ":" in h_str:
-                                parts = h_str.split(":")
-                                total_hours = float(parts[0]) + (float(parts[1])/60.0 if len(parts) > 1 else 0)
-                            else:
-                                total_hours = float(h_str)
-                        break
+                # Use a broad search on page source text for better reliability
+                page_text = driver.execute_script("return document.body.textContent;")
+                
+                # Search for "ชั่วโมงไฟล์การเรียน"
+                hour_match = re.search(r'ชั่วโมงไฟล์การเรียน\s*([\d:]+)\s*ชม', page_text)
+                if hour_match:
+                    h_str = hour_match.group(1)
+                    if ":" in h_str:
+                        parts = h_str.split(":")
+                        total_hours = float(parts[0]) + (float(parts[1])/60.0 if len(parts) > 1 else 0)
+                    else:
+                        total_hours = float(h_str)
+                
+                # Fallback if still 0
+                if total_hours == 0:
+                    fallback_match = re.search(r'(\d+)\s*ชั่วโมง', page_text)
+                    if fallback_match:
+                        total_hours = float(fallback_match.group(1))
+            except:
+                pass
+
+            # [เพิ่มใหม่] ดึงข้อมูล Breadcrumb เพื่อช่วยจัดหมวดหมู่วิชา
+            breadcrumb_text = ""
+            try:
+                breadcrumb_elem = driver.find_element(By.CSS_SELECTOR, "nav.woocommerce-breadcrumb, .sl-breadcrumb-mb nav")
+                breadcrumb_text = breadcrumb_elem.get_attribute("textContent").strip()
             except:
                 pass
 
@@ -169,7 +214,7 @@ try:
                 "institute_name": "WE By The Brain",
                 "course_name": name,
                 "tutor": tutor,
-                "subject": categorize_subject(name),
+                "subject": categorize_subject(name, breadcrumb_text),
                 "course_type": categorize_type(name),
                 "learning_format": "วิดีโอ (ออนไลน์/สาขา)",
                 "total_hours": round(total_hours, 2),
@@ -186,7 +231,12 @@ try:
     if results:
         df = pd.DataFrame(results)
         output_file = "../data/we_courses.csv"
-        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        
+        # Ensure directory exists
+        dir_name = os.path.dirname(output_file)
+        if dir_name:
+            os.makedirs(dir_name, exist_ok=True)
+            
         df.to_csv(output_file, index=False, encoding="utf-8-sig")
         print(f"\nSaved {len(results)} courses to {output_file}")
     else:
