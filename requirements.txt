@@ -3,3 +3,6 @@ webdriver-manager
 requests
 python-dotenv
 pandas
+matplotlib
+numpy
+seaborn
