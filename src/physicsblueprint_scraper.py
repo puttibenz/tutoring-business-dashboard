@@ -40,6 +40,7 @@ def categorize_type(name):
 # Setup Selenium
 chrome_options = Options()
 chrome_options.add_argument("--headless")
+chrome_options.add_argument("--window-size=1920,1080")
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 wait = WebDriverWait(driver, 15)
 
@@ -48,20 +49,43 @@ all_course_links = set()
 try:
     print("--- Step 1: Collecting Course Links from Physics Blueprint ---")
     for cat_url in category_urls:
-        print(f"Opening category: {cat_url}")
+        print(f"\nกำลังเปิดหมวดหมู่: {cat_url}")
         try:
             driver.get(cat_url)
-            time.sleep(3)
-            product_links = driver.find_elements(By.CSS_SELECTOR, "li.product a.woocommerce-LoopProduct-link")
+            time.sleep(3) # รอให้เว็บโหลดส่วนแรกเสร็จ
+            
+            print("  [>] กำลังไถหน้าจอเพื่อโหลดคอร์สที่ซ่อนอยู่ (Lazy Loading)...")
+            # --- ระบบไถหน้าจอลงไปล่างสุด ---
+            last_height = driver.execute_script("return document.body.scrollHeight")
+            while True:
+                # สั่งเลื่อนจอลงไปล่างสุด
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2) # รอให้รูปและข้อมูลคอร์สใหม่เด้งขึ้นมา
+                
+                # เช็คว่าความสูงเว็บเพิ่มขึ้นไหม (ถ้าไม่เพิ่มแปลว่าสุดหน้าแล้ว)
+                new_height = driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    break
+                last_height = new_height
+            
+            # --- เริ่มกวาดลิงก์หลังจากเว็บโหลดข้อมูลครบหมดแล้ว ---
+            product_links = driver.find_elements(By.CSS_SELECTOR, "a.woocommerce-LoopProduct-link")
+            links_added = 0
+            
             for link_elem in product_links:
-                url = link_elem.get_attribute("href")
-                if url:
-                    all_course_links.add(url)
+                if link_elem.is_displayed(): # เพิ่มการเช็คว่าคอร์สนั้นแสดงบนหน้าเว็บจริงๆ (กันพวก hidden/mobile view)
+                    url = link_elem.get_attribute("href")
+                    if url and url not in all_course_links:
+                        all_course_links.add(url)
+                        links_added += 1
+                    
+            print(f"  [+] เก็บลิงก์สำเร็จ {links_added} คอร์ส")
+
         except Exception as e:
-            print(f"Error opening {cat_url}: {e}")
+            print(f"  [-] Error ในหน้า {cat_url}: {e}")
 
     course_list = list(all_course_links)
-    print(f"Total unique courses found: {len(course_list)}")
+    print(f"\nสรุป Step 1: พบคอร์สเรียนทั้งหมด (Unique): {len(course_list)} คอร์ส")
 
     print("\n--- Step 2: Scraping Course Details ---")
     results = []
