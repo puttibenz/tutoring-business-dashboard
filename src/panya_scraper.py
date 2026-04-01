@@ -130,11 +130,17 @@ try:# --- STEP 1: กวาด URL แบบ Infinite Scroll ---
         print(f"({index}/{len(course_list)}) กำลังดึงข้อมูล: {course_url}")
         try:
             driver.get(course_url)
+            time.sleep(2) # รอหน้าเว็บโหลด
             
-            # ใช้ WebDriverWait รอให้ชื่อคอร์สโหลดเสร็จ (รอคลาส .bold-text-8)
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".bold-text-8")))
-            time.sleep(1) # เผื่อเวลาให้ render ส่วนอื่นๆ
-            
+            # ค่อยๆ เลื่อนจอลงมา 2 สเตป ให้ Lazy Load ดึงข้อมูลทั้งติวเตอร์ ราคา และชั่วโมงขึ้นมา
+            driver.execute_script("window.scrollBy(0, 500);")
+            time.sleep(1)
+            driver.execute_script("window.scrollBy(0, 500);")
+            time.sleep(1)
+
+            # ไม่ง้อ .text แล้ว! ใช้ JavaScript ดูดข้อความทั้งหมดบนหน้าจอมาเลยชัวร์กว่า
+            page_text = driver.execute_script("return document.body.innerText;")
+
             row = {
                 "institute_name": "Panya Society",
                 "course_name": "N/A",
@@ -147,46 +153,58 @@ try:# --- STEP 1: กวาด URL แบบ Infinite Scroll ---
                 "price_per_hour": 0.0,
                 "url": course_url
             }
-            
-            # 1. ดึงชื่อคอร์ส (จากคลาส bold-text-8)
+
+            # 1. ดึงชื่อคอร์ส (เป้าหมายจาก HTML ที่แคปมา)
             try:
-                name_elem = driver.find_element(By.CSS_SELECTOR, ".bold-text-8")
+                # สั่งให้บอทรอจนกว่าคลาส bold-text-8 จะโผล่ขึ้นมา (รอสูงสุด 10 วินาที)
+                name_elem = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.text-block-12 strong.bold-text-8, strong.bold-text-8"))
+                )
                 row["course_name"] = name_elem.text.strip()
+            except Exception as e:
+                print(f"  [Debug] หาชื่อคอร์สไม่เจอ: {e}")
+                try:
+                    # แผนสำรองขั้นสุด: ดึงจากชื่อ Tab บนเบราว์เซอร์
+                    row["course_name"] = driver.title.split('-')[0].split('|')[0].strip()
+                except: pass
+                
+            # พอได้ชื่อคอร์ส ฟังก์ชันจัดหมวดหมู่จะทำงานได้ปกติ
+            if row["course_name"] != "N/A":
                 row["subject"] = categorize_subject(row["course_name"])
                 row["course_type"] = categorize_type(row["course_name"])
-            except: pass
-            
-            # 2. ดึงติวเตอร์ (กวาดทุกคนที่อยู่ในคลาส text-block-101)
+
+            # 2. ดึงติวเตอร์ (ใช้ XPath หาคำว่า อ. หรือ พี่ ที่เราแก้แล้วเวิร์ก)
             try:
-                tutor_elems = driver.find_elements(By.CSS_SELECTOR, ".text-block-101")
-                if tutor_elems:
-                    row["tutor"] = ", ".join([t.text.strip() for t in tutor_elems if t.text.strip() != ""])
+                tutor_names = []
+                tutor_elems = driver.find_elements(By.XPATH, "//*[contains(text(), '(อ.') or contains(text(), '(พี่')]")
+                for t in tutor_elems:
+                    name = t.get_attribute("textContent").strip()
+                    if name and len(name) < 60: 
+                        tutor_names.append(name)
+                if tutor_names:
+                    row["tutor"] = ", ".join(list(dict.fromkeys(tutor_names))) # ลบชื่อซ้ำ
             except: pass
 
-            # 3. ดึงจำนวนชั่วโมง (จากคลาส text-block-20)
+            # 3. ดึงจำนวนชั่วโมง (กวาด Regex จากข้อความทั้งหน้า)
             try:
-                hour_elem = driver.find_element(By.CSS_SELECTOR, ".text-block-20")
-                hour_text = hour_elem.text.strip() # เช่น "1213 lectures • 308 hours"
-                
-                # ใช้ Regex ดักจับตัวเลขที่อยู่หน้าคำว่า hours
-                hour_match = re.search(r'([\d.]+)\s*hours', hour_text, re.IGNORECASE)
+                # ดักทั้งคำว่า hours, ชั่วโมง, ชม.
+                hour_match = re.search(r'([\d,.]+)\s*(hours|ชั่วโมง|ชม\.)', page_text, re.IGNORECASE)
                 if hour_match:
-                    row["total_hours"] = float(hour_match.group(1))
+                    row["total_hours"] = float(hour_match.group(1).replace(',', ''))
             except: pass
 
-            # 4. ดึงราคา (ยังคงใช้ Regex กวาดจากหน้าเว็บ เพราะในรูปไม่ได้แคปส่วนราคามาให้)
+            # 4. ดึงราคา (กวาด Regex จากข้อความทั้งหน้า)
             try:
-                page_text = driver.find_element(By.TAG_NAME, "body").text
-                price_matches = re.findall(r'฿([\d,]+)', page_text)
+                # หาตัวเลขที่อยู่หลังเครื่องหมาย ฿ (เอาตัวสุดท้าย เพราะมักจะเป็นราคาลดแล้ว)
+                price_matches = re.findall(r'฿\s*([\d,]+)', page_text)
                 if price_matches:
-                    price_str = price_matches[-1].replace(',', '')
-                    row["price"] = float(price_str)
+                    row["price"] = float(price_matches[-1].replace(',', ''))
             except: pass
             
             # 5. คำนวณราคาต่อชั่วโมง
             if row["price"] > 0 and row["total_hours"] > 0:
                 row["price_per_hour"] = round(row["price"] / row["total_hours"], 2)
-                
+
             results.append(row)
             
         except Exception as e:

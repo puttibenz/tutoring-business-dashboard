@@ -91,7 +91,7 @@ try:
         print(f"({index}/{len(course_list)}) กำลังดึงข้อมูล: {course_url}")
         try:
             driver.get(course_url)
-            time.sleep(1) # รอให้ Render ข้อมูล
+            time.sleep(2) # รอให้ Render ข้อมูล
             
             # ดึงชื่อคอร์สก่อนเพื่อใช้จัดหมวดหมู่
             try:
@@ -111,10 +111,12 @@ try:
                 "url": course_url
             }
 
-            # 1. ดึงชื่อติวเตอร์ (Tutor) จาก div.info h3
+            # 1. ดึงชื่อติวเตอร์ (Tutor) — รองรับหลายคน
             try:
-                tutor_elem = driver.find_element(By.CSS_SELECTOR, "div.info h3")
-                row["tutor"] = tutor_elem.text.strip()
+                tutor_elems = driver.find_elements(By.CSS_SELECTOR, "div.item.-user div.info h3")
+                if tutor_elems:
+                    tutor_names = [t.text.strip() for t in tutor_elems if t.text.strip()]
+                    row["tutor"] = ", ".join(tutor_names) if tutor_names else "N/A"
             except: pass
 
             # 2. ดึงราคา (Price)
@@ -131,11 +133,14 @@ try:
 
             # 3. ดึงจำนวนชั่วโมง (Total Hours)
             try:
-                duration_text = driver.find_element(By.XPATH, "//div[contains(@class, 's-grid')]//div[contains(@class, 'col')][1]/p").text
-                # ดึงตัวเลขจากข้อความ เช่น "230 ชั่วโมง"
-                hours_match = re.findall(r'[\d.]+', duration_text)
-                if hours_match:
-                    row["total_hours"] = float(hours_match[0])
+                # ลองหา element ที่มีข้อความ "ชั่วโมง" ใน sidebar
+                hour_elems = driver.find_elements(By.XPATH, "//*[contains(text(), 'ชั่วโมง')]")
+                for elem in hour_elems:
+                    text = elem.text.strip()
+                    hours_match = re.match(r'^([\d,.]+)\s*ชั่วโมง', text)
+                    if hours_match:
+                        row["total_hours"] = float(hours_match.group(1).replace(',', ''))
+                        break
             except: pass
 
             # 4. คำนวณราคาต่อชั่วโมง (Price per Hour)
