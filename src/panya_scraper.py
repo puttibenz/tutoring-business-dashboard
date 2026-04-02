@@ -16,12 +16,15 @@ PANYA_URL = "https://panyasociety.com/course/list"
 # ฟังก์ชันจัดหมวดหมู่วิชา
 def categorize_subject(name):
     name = name.lower()
-    if 'math' in name or 'คณิต' in name: return 'คณิตศาสตร์'
-    if 'phy' in name or 'ฟิสิกส์' in name: return 'ฟิสิกส์'
-    if 'bio' in name or 'ชีวะ' in name: return 'ชีววิทยา'
-    if 'eng' in name or 'อังกฤษ' in name: return 'ภาษาอังกฤษ'
-    if 'เคมี' in name: return 'เคมี'
-    if 'tpat' in name or 'tgat' in name: return 'ความถนัด/TGAT/TPAT'
+    subjects = []
+    if 'math' in name or 'คณิต' in name: subjects.append('คณิตศาสตร์')
+    if 'phy' in name or 'ฟิสิกส์' in name: subjects.append('ฟิสิกส์')
+    if 'bio' in name or 'ชีวะ' in name: subjects.append('ชีววิทยา')
+    if 'eng' in name or 'อังกฤษ' in name: subjects.append('ภาษาอังกฤษ')
+    if 'เคมี' in name: subjects.append('เคมี')
+    if 'tpat' in name or 'tgat' in name: subjects.append('ความถนัด/TGAT/TPAT')
+    if len(subjects) > 1: return 'Mixed'
+    if len(subjects) == 1: return subjects[0]
     return 'อื่นๆ'
 
 # ฟังก์ชันจัดประเภทคอร์ส
@@ -160,7 +163,11 @@ try:# --- STEP 1: กวาด URL แบบ Infinite Scroll ---
                 name_elem = WebDriverWait(driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "div.text-block-12 strong.bold-text-8, strong.bold-text-8"))
                 )
-                row["course_name"] = name_elem.text.strip()
+                # ใช้ textContent แทน .text เพราะ .text คืนค่าว่างถ้า element ยัง render ไม่เสร็จ
+                course_name = name_elem.get_attribute("textContent").strip()
+                if not course_name:
+                    course_name = driver.execute_script("return arguments[0].textContent;", name_elem).strip()
+                row["course_name"] = course_name if course_name else "N/A"
             except Exception as e:
                 print(f"  [Debug] หาชื่อคอร์สไม่เจอ: {e}")
                 try:

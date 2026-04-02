@@ -27,12 +27,15 @@ category_urls = list(dict.fromkeys(category_urls))
 # ฟังก์ชันจัดหมวดหมู่วิชา
 def categorize_subject(name):
     name = name.lower()
-    if 'math' in name or 'คณิต' in name: return 'คณิตศาสตร์'
-    if 'phy' in name or 'ฟิสิกส์' in name: return 'ฟิสิกส์'
-    if 'bio' in name or 'ชีวะ' in name: return 'ชีววิทยา'
-    if 'eng' in name or 'อังกฤษ' in name: return 'ภาษาอังกฤษ'
-    if 'เคมี' in name: return 'เคมี'
-    if 'tpat' in name or 'tgat' in name: return 'ความถนัด/TGAT/TPAT'
+    subjects = []
+    if 'math' in name or 'คณิต' in name: subjects.append('คณิตศาสตร์')
+    if 'phy' in name or 'ฟิสิกส์' in name: subjects.append('ฟิสิกส์')
+    if 'bio' in name or 'ชีวะ' in name: subjects.append('ชีววิทยา')
+    if 'eng' in name or 'อังกฤษ' in name: subjects.append('ภาษาอังกฤษ')
+    if 'เคมี' in name: subjects.append('เคมี')
+    if 'tpat' in name or 'tgat' in name: subjects.append('ความถนัด/TGAT/TPAT')
+    if len(subjects) > 1: return 'Mixed'
+    if len(subjects) == 1: return subjects[0]
     return 'อื่นๆ'
 
 # ฟังก์ชันจัดประเภทคอร์ส
@@ -170,7 +173,8 @@ try:
     if results:
         df = pd.DataFrame(results)
         # เปลี่ยนชื่อไฟล์ให้เซฟไว้ที่เดียวกับโค้ดเลย จะได้หาง่ายๆ
-        output_path = "ondemand_courses.csv" 
+        output_path = "data/ondemand_courses.csv" 
+        os.makedirs("data", exist_ok=True)
         df.to_csv(output_path, index=False, encoding="utf-8-sig")
         print(f"\nเสร็จสิ้น! บันทึกข้อมูล {len(results)} คอร์ส ลงในไฟล์ {output_path}")
     else:

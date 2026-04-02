@@ -16,14 +16,17 @@ WE_CATALOG_URL = "https://store.webythebrain.com/course/?utm_source=google&utm_m
 # Helper Functions for Categorization
 def categorize_subject(name, breadcrumb=""):
     combined_text = (name + " " + breadcrumb).lower()
-    if 'math' in combined_text or 'คณิต' in combined_text: return 'คณิตศาสตร์'
-    if 'phy' in combined_text or 'ฟิสิกส์' in combined_text: return 'ฟิสิกส์'
-    if 'bio' in combined_text or 'ชีวะ' in combined_text or 'ชีววิทยา' in combined_text: return 'ชีววิทยา'
-    if 'eng' in combined_text or 'อังกฤษ' in combined_text: return 'ภาษาอังกฤษ'
-    if 'เคมี' in combined_text: return 'เคมี'
-    if 'tpat' in combined_text or 'tgat' in combined_text: return 'ความถนัด/TGAT/TPAT'
-    if 'ไทย' in combined_text: return 'ภาษาไทย'
-    if 'สังคม' in combined_text: return 'สังคมศึกษา'
+    subjects = []
+    if 'math' in combined_text or 'คณิต' in combined_text: subjects.append('คณิตศาสตร์')
+    if 'phy' in combined_text or 'ฟิสิกส์' in combined_text: subjects.append('ฟิสิกส์')
+    if 'bio' in combined_text or 'ชีวะ' in combined_text or 'ชีววิทยา' in combined_text: subjects.append('ชีววิทยา')
+    if 'eng' in combined_text or 'อังกฤษ' in combined_text: subjects.append('ภาษาอังกฤษ')
+    if 'เคมี' in combined_text: subjects.append('เคมี')
+    if 'tpat' in combined_text or 'tgat' in combined_text: subjects.append('ความถนัด/TGAT/TPAT')
+    if 'ไทย' in combined_text: subjects.append('ภาษาไทย')
+    if 'สังคม' in combined_text: subjects.append('สังคมศึกษา')
+    if len(subjects) > 1: return 'Mixed'
+    if len(subjects) == 1: return subjects[0]
     return 'อื่นๆ'
 
 def categorize_type(name):

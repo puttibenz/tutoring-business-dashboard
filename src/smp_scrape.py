@@ -1,6 +1,7 @@
 import pandas as pd
 import time
 import re
+import os
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -41,12 +42,15 @@ category_urls = list(dict.fromkeys(category_urls))
 # ฟังก์ชันจัดหมวดหมู่ตามชื่อคอร์ส
 def categorize_subject(name):
     name = name.lower()
-    if 'math' in name or 'คณิต' in name: return 'คณิตศาสตร์'
-    if 'phy' in name or 'ฟิสิกส์' in name: return 'ฟิสิกส์'
-    if 'bio' in name or 'ชีวะ' in name: return 'ชีววิทยา'
-    if 'eng' in name or 'อังกฤษ' in name: return 'ภาษาอังกฤษ'
-    if 'เคมี' in name: return 'เคมี'
-    if 'tpat' in name or 'tgat' in name: return 'ความถนัด/TGAT/TPAT'
+    subjects = []
+    if 'math' in name or 'คณิต' in name: subjects.append('คณิตศาสตร์')
+    if 'phy' in name or 'ฟิสิกส์' in name: subjects.append('ฟิสิกส์')
+    if 'bio' in name or 'ชีวะ' in name: subjects.append('ชีววิทยา')
+    if 'eng' in name or 'อังกฤษ' in name: subjects.append('ภาษาอังกฤษ')
+    if 'เคมี' in name: subjects.append('เคมี')
+    if 'tpat' in name or 'tgat' in name: subjects.append('ความถนัด/TGAT/TPAT')
+    if len(subjects) > 1: return 'Mixed'
+    if len(subjects) == 1: return subjects[0]
     return 'อื่นๆ'
 
 def categorize_type(name):
@@ -151,10 +155,15 @@ try:
         except Exception as e:
             print(f"Error scraping {course_url}: {e}")
 
-    # --- Export: บันทึกข้อมูลเป็น CSV ---
-    df = pd.DataFrame(results)
-    df.to_csv("smartmathpro_raw.csv", index=False, encoding='utf-8-sig')
-    print("\nScraping เสร็จสมบูรณ์! บันทึกข้อมูลลงไฟล์ 'smartmathpro_raw.csv' เรียบร้อยแล้ว")
+    # Save to CSV
+    if results:
+        df = pd.DataFrame(results)
+        output_file = "data/smp_courses.csv"
+        os.makedirs("data", exist_ok=True)
+        df.to_csv(output_file, index=False, encoding="utf-8-sig")
+        print(f"\nSaved {len(results)} courses to {output_file}")
+    else:
+        print("\nNo data collected.")
 
 finally:
     driver.quit()

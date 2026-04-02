@@ -23,10 +23,13 @@ category_urls = [
 
 def categorize_subject(name):
     name = name.lower()
-    if 'math' in name or 'คณิต' in name: return 'คณิตศาสตร์'
-    if 'phy' in name or 'ฟิสิกส์' in name: return 'ฟิสิกส์'
-    if 'tpat3' in name or 'ความถนัดวิศวะ' in name: return 'ฟิสิกส์/ความถนัดวิศวะ'
-    if 'tgat' in name: return 'ความถนัด/TGAT'
+    subjects = []
+    if 'math' in name or 'คณิต' in name: subjects.append('คณิตศาสตร์')
+    if 'phy' in name or 'ฟิสิกส์' in name: subjects.append('ฟิสิกส์')
+    if 'tpat3' in name or 'ความถนัดวิศวะ' in name: subjects.append('ฟิสิกส์/ความถนัดวิศวะ')
+    if 'tgat' in name: subjects.append('ความถนัด/TGAT')
+    if len(subjects) > 1: return 'Mixed'
+    if len(subjects) == 1: return subjects[0]
     return 'ฟิสิกส์'
 
 def categorize_type(name):
