@@ -10,6 +10,7 @@ SUBJECT_KEYWORDS: dict[str, list[str]] = {
     "ภาษาไทย":   ["ภาษาไทย", "ไทย-สังคม"],
     "สังคมศึกษา": ["สังคม", "ไทย-สังคม"],
     "ภาษาอังกฤษ": ["อังกฤษ", "English"],
+    "ความถนัด (TGAT/TPAT/สอบเฉพาะทาง)": ["TGAT", "TPAT", "ความถนัด"],
 }
 
 COMBO_SUBJECT_MAP: dict[str, list[str]] = {
@@ -19,13 +20,19 @@ COMBO_SUBJECT_MAP: dict[str, list[str]] = {
     "แพ็กเกจเตรียมสอบแพทย์ (กสพท/TPAT1)": [
         "ฟิสิกส์", "เคมี", "ชีววิทยา", "คณิตศาสตร์",
         "ภาษาไทย", "สังคมศึกษา", "ภาษาอังกฤษ",
+        "ความถนัด (TGAT/TPAT/สอบเฉพาะทาง)",
     ],
-    "แพ็กเกจเตรียมสอบวิศวะ (TPAT3)": ["ฟิสิกส์", "คณิตศาสตร์", "ภาษาอังกฤษ"],
+    "แพ็กเกจเตรียมสอบวิศวะ (TPAT3)": [
+        "ฟิสิกส์", "คณิตศาสตร์", "ภาษาอังกฤษ",
+        "ความถนัด (TGAT/TPAT/สอบเฉพาะทาง)",
+    ],
+    "ความถนัด (TGAT/TPAT/สอบเฉพาะทาง)": ["ความถนัด (TGAT/TPAT/สอบเฉพาะทาง)"],
 }
 
 CORE_SUBJECTS: list[str] = [
     "คณิตศาสตร์", "ฟิสิกส์", "เคมี", "ชีววิทยา",
     "ภาษาไทย", "สังคมศึกษา", "ภาษาอังกฤษ",
+    "ความถนัด (TGAT/TPAT/สอบเฉพาะทาง)",
 ]
 
 
@@ -55,6 +62,8 @@ class BundleCalculatorTab:
         self, selected: list[str], pool: pd.DataFrame
     ) -> tuple[pd.DataFrame, float]:
         """For each selected subject, find cheapest single-subject course."""
+        if "course_scope" in pool.columns:
+            pool = pool[pool["course_scope"] == "Full Course (คอร์สเตรียมสอบ/รวมเทอม)"]
         rows = []
         total = 0.0
         for subj in selected:
@@ -90,6 +99,8 @@ class BundleCalculatorTab:
         require_full_coverage: bool,
     ) -> pd.DataFrame:
         """Score and rank bundle packages by subject coverage."""
+        if "course_scope" in pool.columns:
+            pool = pool[pool["course_scope"] == "Full Course (คอร์สเตรียมสอบ/รวมเทอม)"]
         selected_set = set(selected)
         bundles = pool[(pool["course_type"] == "คอร์สแพ็กเกจ") & (pool["price"] > 0)].copy()
         if bundles.empty:

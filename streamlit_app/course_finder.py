@@ -19,7 +19,7 @@ class CourseFinderTab:
 
         display_cols = [
             "institute_name", "course_name", "tutor", "subject",
-            "course_type", "total_hours", "price", "price_per_hour",
+            "course_type", "total_hours", "price", "price_per_hour",'course_scope'
         ]
         st.dataframe(
             filtered[display_cols].sort_values("price_per_hour"),
@@ -33,7 +33,7 @@ class CourseFinderTab:
         tutor_detail = self.tutor_map.merge(
             self.courses[[
                 "institute_name", "course_name", "subject", "course_type",
-                "total_hours", "price", "price_per_hour",
+                "total_hours", "price", "price_per_hour", "course_scope"
             ]],
             on=["institute_name", "course_name"],
             how="left",
@@ -92,7 +92,7 @@ class CourseFinderTab:
             st.dataframe(
                 comp[[
                     "individual_tutor", "institute_name", "course_name",
-                    "subject", "course_type", "price", "price_per_hour",
+                    "subject", "course_type", "price", "price_per_hour", "course_scope"
                 ]].sort_values("price_per_hour"),
                 use_container_width=True,
             )

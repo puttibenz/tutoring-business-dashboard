@@ -51,6 +51,16 @@ with st.sidebar:
         step=100.0,
     )
 
+    has_scope_col = "course_scope" in courses.columns
+    hide_chapters = False
+    if has_scope_col:
+        st.divider()
+        hide_chapters = st.toggle(
+            "🔖 ซ่อนคอร์สแยกบท",
+            value=False,
+            help="ซ่อนคอร์สเนื้อหาแยกบท (Chapter) แสดงเฉพาะ Full Course",
+        )
+
 # ── Apply Filters ────────────────────────────────────────────────────────────
 filtered = courses.copy()
 if sel_subjects:
@@ -59,6 +69,8 @@ if sel_institutes:
     filtered = filtered[filtered["institute_name"].isin(sel_institutes)]
 if sel_course_types:
     filtered = filtered[filtered["course_type"].isin(sel_course_types)]
+if hide_chapters and "course_scope" in filtered.columns:
+    filtered = filtered[filtered["course_scope"] == "Full Course (คอร์สเตรียมสอบ/รวมเทอม)"]
 filtered = filtered[
     (filtered["price"] >= price_range[0]) & (filtered["price"] <= price_range[1])
 ]
