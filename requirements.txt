@@ -6,3 +6,5 @@ pandas
 matplotlib
 numpy
 seaborn
+streamlit
+plotly
