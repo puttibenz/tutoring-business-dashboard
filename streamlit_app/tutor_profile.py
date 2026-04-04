@@ -17,10 +17,13 @@ class TutorProfileTab:
         )
 
     def render(self, filtered: pd.DataFrame, filtered_tutor_map: pd.DataFrame) -> None:
-        st.header("🧑‍🏫 Tutor Deep-Dive Profile")
-        st.caption(
-            "เจาะลึกข้อมูลติวเตอร์รายบุคคล — สอนที่ไหนบ้าง ราคาเท่าไหร่ คอร์สไหนคุ้มที่สุด"
-        )
+        st.markdown("""
+        <div class="page-hero">
+          <p class="eyebrow">Tutor Deep-Dive Profile</p>
+          <h1>🧑‍🏫 อ่านประวัติติวเตอร์รายบุคคล</h1>
+          <p class="subtitle">เจาะลึกข้อมูลติวเตอร์รายบุคคล — สอนที่ไหนบ้าง ราคาเท่าไหร่ คอร์สไหนคุ้มที่สุด</p>
+        </div>
+        """, unsafe_allow_html=True)
         st.divider()
 
         all_tutors = sorted(self.merged["individual_tutor"].dropna().unique())
@@ -59,7 +62,15 @@ class TutorProfileTab:
         col_chart, col_table = st.columns([2, 1])
 
         with col_chart:
-            st.subheader("🍩 สัดส่วนประเภทคอร์ส")
+            st.markdown("""
+            <div class="section-header">
+              <div class="icon">🍩</div>
+              <div>
+                <h2>สัดส่วนประเภทคอร์ส</h2>
+                <p>Course type distribution</p>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
             type_counts = (
                 tutor_df.groupby("course_type")
                 .size()
@@ -78,7 +89,15 @@ class TutorProfileTab:
             st.plotly_chart(fig_donut, use_container_width=True)
 
         with col_table:
-            st.subheader("🏷️ คอร์สราคาถูกสุด 3 อันดับ")
+            st.markdown("""
+            <div class="section-header">
+              <div class="icon" style="background:linear-gradient(135deg,#F59E0B,#D97706);">&#127991;</div>
+              <div>
+                <h2>คอร์สราคาถูกสุด 3 อันดับ</h2>
+                <p>Best value courses by this tutor</p>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
             best_deals = (
                 tutor_df[tutor_df["price"] > 0]
                 .sort_values("price")
@@ -108,7 +127,16 @@ class TutorProfileTab:
         st.divider()
 
         # ── Full Course List ──────────────────────────────────────────────────
-        st.subheader(f"📋 คอร์สทั้งหมดของ {selected_tutor}")
+        st.markdown(f"""
+        <div class="section-header" style="margin-top:1rem;">
+          <div class="icon">📋</div>
+          <div>
+            <h2>คอร์สทั้งหมดของ {selected_tutor}
+              <span class="count-badge">{total_courses} คอร์ส</span></h2>
+            <p>เรียงตาม ฿/ชม. — ถูกให้แพงกว่า</p>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
         full_cols = [
             "institute_name", "course_name", "subject",
             "course_type", "total_hours", "price", "price_per_hour",

@@ -11,11 +11,24 @@ class CourseFinderTab:
         self.tutor_map = tutor_map_df
 
     def render(self, filtered: pd.DataFrame, filtered_tutor_map: pd.DataFrame) -> None:
-        st.header("🎓 ค้นหาคอร์สที่คุ้มค่าที่สุด")
+        st.markdown("""
+        <div class="page-hero">
+          <p class="eyebrow">Course Finder &amp; Budget Optimizer</p>
+          <h1>🎓 ค้นหาคอร์สที่คุ้มค่าที่สุด</h1>
+          <p class="subtitle">ค้นหาและเปรียบเทียบคอร์สเรียนที่ตรงใจในงบที่คุณต้องการ</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-        # ── Results Table ────────────────────────────────────────────────────
-        st.subheader(f"📋 ผลลัพธ์ ({len(filtered)} คอร์ส)")
-        st.caption("คลิกหัวคอลัมน์เพื่อเรียงลำดับ — เช่น price_per_hour หรือ total_hours")
+        # ── Results Table ───────────────────────────────────────────────────────────
+        st.markdown(f"""
+        <div class="section-header">
+          <div class="icon">📋</div>
+          <div>
+            <h2>ผลลัพธ์ <span class="count-badge">{len(filtered)} คอร์ส</span></h2>
+            <p>คลิกหัวคอลัมน์เพื่อเรียงลำดับ — เช่น price_per_hour หรือ total_hours</p>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         display_cols = [
             "institute_name", "course_name", "tutor", "subject",
@@ -28,7 +41,15 @@ class CourseFinderTab:
         )
 
         # ── Tutor Comparison ─────────────────────────────────────────────────
-        st.subheader("👩‍🏫 เปรียบเทียบติวเตอร์")
+        st.markdown("""
+        <div class="section-header" style="margin-top:1.5rem;">
+          <div class="icon">👩‍🏫</div>
+          <div>
+            <h2>เปรียบเทียบติวเตอร์</h2>
+            <p>เลือกติวเตอร์ 2–3 คนเพื่อดูเปรียบเทียบราคาและประเภทคอร์ส</p>
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
 
         tutor_detail = self.tutor_map.merge(
             self.courses[[
@@ -53,7 +74,12 @@ class CourseFinderTab:
             col1, col2 = st.columns(2)
 
             with col1:
-                st.markdown("**ราคาเฉลี่ย (฿/ชม.) ของแต่ละติวเตอร์**")
+                st.markdown("""
+                <div style="font-size:.8rem;font-weight:600;color:#475569;
+                            text-transform:uppercase;letter-spacing:.06em;
+                            margin-bottom:.5rem;">
+                  ราคาเฉลี่ย (฿/ชม.) ของแต่ละติวเตอร์
+                </div>""", unsafe_allow_html=True)
                 avg_price = (
                     comp.groupby("individual_tutor")["price_per_hour"]
                     .mean()
@@ -72,7 +98,12 @@ class CourseFinderTab:
                 st.plotly_chart(fig_avg, use_container_width=True)
 
             with col2:
-                st.markdown("**ประเภทคอร์สของแต่ละติวเตอร์**")
+                st.markdown("""
+                <div style="font-size:.8rem;font-weight:600;color:#475569;
+                            text-transform:uppercase;letter-spacing:.06em;
+                            margin-bottom:.5rem;">
+                  ประเภทคอร์สของแต่ละติวเตอร์
+                </div>""", unsafe_allow_html=True)
                 type_counts = (
                     comp.groupby(["individual_tutor", "course_type"])
                     .size()

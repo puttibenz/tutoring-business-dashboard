@@ -140,12 +140,15 @@ class BundleCalculatorTab:
         return CORE_SUBJECTS
 
     def render(self, filtered: pd.DataFrame, filtered_tutor_map: pd.DataFrame) -> None:
-        st.header("🧮 Smart Bundle Calculator")
-        st.caption(
-            "เลือกวิชาที่อยากเรียน → ระบบเปรียบเทียบให้ว่า "
-            "**ซื้อแยกวิชา** กับ **ซื้อแพ็กเกจรวม** แบบไหนคุ้มกว่า"
-        )
-        st.caption(f"วิเคราะห์จาก **{len(filtered)}** คอร์ส (ตาม Smart Filters ด้านซ้าย)")
+        st.markdown(f"""
+        <div class="page-hero">
+          <p class="eyebrow">Smart Bundle Calculator</p>
+          <h1>🧮 เปรียบเทียบซื้อแยก vs. แพ็กเกจรวม</h1>
+          <p class="subtitle">เลือกวิชาที่อยากเรียน → ระบบเปรียบเทียบให้ว่า ซื้อแยกวิชา กับ ซื้อแพ็กเกจรวม แบบไหนคุ้มกว่า
+            &nbsp;—&nbsp; วิเคราะห์จาก <strong>{len(filtered):,}</strong> คอร์ส (ตาม Smart Filters)
+          </p>
+        </div>
+        """, unsafe_allow_html=True)
         st.divider()
 
         # ── User Inputs ───────────────────────────────────────────────────────
@@ -211,7 +214,15 @@ class BundleCalculatorTab:
         left, right = st.columns(2)
 
         with left:
-            st.subheader("🧾 ซื้อแยกวิชา (ราคาถูกสุดต่อวิชา)")
+            st.markdown("""
+            <div class="section-header">
+              <div class="icon">🧧</div>
+              <div>
+                <h2>ซื้อแยกวิชา (ราคาถูกสุดต่อวิชา)</h2>
+                <p>คอร์สราคาถูกที่สุดสำหรับแต่ละวิชา</p>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
             display_singles = singles_df.copy()
             display_singles["ราคา (฿)"] = display_singles["ราคา (฿)"].apply(
                 lambda x: f"฿{x:,.0f}" if pd.notna(x) else "ไม่มีคอร์สแยก"
@@ -221,7 +232,12 @@ class BundleCalculatorTab:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.markdown(f"**ยอดรวม: ฿{singles_total:,.0f}**")
+            st.markdown(
+                f'<div style="font-size:.875rem;font-weight:700;color:#0F172A;'
+                f'padding:.75rem 0 .5rem;">'
+                f'ยอดรวม: ฿{singles_total:,.0f}</div>',
+                unsafe_allow_html=True,
+            )
 
             missing = singles_df[
                 singles_df["ราคา (฿)"] == "ไม่มีคอร์สแยก"
@@ -233,7 +249,15 @@ class BundleCalculatorTab:
                 )
 
         with right:
-            st.subheader("📦 แพ็กเกจที่แนะนำ")
+            st.markdown("""
+            <div class="section-header">
+              <div class="icon" style="background:linear-gradient(135deg,#10B981,#059669);">&#128230;</div>
+              <div>
+                <h2>แพ็กเกจที่แนะนำ</h2>
+                <p>Bundle courses ranked by coverage &amp; value</p>
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
             if bundles_df.empty:
                 verb = "ครอบคลุมทุกวิชา" if require_full else "ครอบคลุมบางวิชา"
                 st.warning(
